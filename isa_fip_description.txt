@@ -1,0 +1,270 @@
+Registers
+---------
+> General purpose registers
+r0 - r15
+
+> Special purpose registers
+rfs - Flag status (inaccessible)
+rip - Instruction pointer (inaccessible)
+rsp - Stack pointer
+rbp - Base pointer
+
+> Flags
+Status 0 - Zero flag
+Status 1 - Sign flag
+Status 2 - Carry flag
+Status 3 - Overflow flag
+
+> Size classes
+r - 64 bit "register"
+s - 32 bit "section"
+q - 16 bit "quarter"
+b -  8 bit "byte"
+
+
+Instruction set reference
+-------------------------
+> Description
+Instructions may act on data in the form of registers (r), memory addresses (m) and immediate values (i). Some
+instructions take two arguments, some take one, others zero. Instructions taking arguments permit some types of data
+flow and disallow others. For instance, a 1-ary instruction with data flow 'r' may only take a register as its argument.
+2-ary data flow 'rr/ri' means either register-register or register-immediate are allowed as arguments. 0-ary
+instructions are marked with data flow '()'.
+
+> Arithmetic instructions
+add     rr/rm/ri/mr/mi
+        Add.
+        Flags affected: ZF, SF, CF, OF
+adc     rr/rm/ri/mr/mi
+        Add with carry.
+        Flags affected: ZF, SF, CF, OF
+sub     rr/rm/ri/mr/mi
+        Subtract.
+        Flags affected: ZF, SF, CF, OF
+sbb     rr/rm/ri/mr/mi
+        Subtract with borrow.
+        Flags affected: ZF, SF, CF, OF
+mul     rr/rm/ri/mr/mi
+        Unsigned multiply with overflow in r15.
+        Flags affected: ZF; CF, OF when result overflowed.
+div     rr/rm/ri/mr/mi
+        Unsigned divide with remainder in r15.
+        Flags affected: ZF; CF, OF when remainder is not 0.
+imul    rr/rm/ri/mr/mi
+        Signed multiply with overflow in r15.
+        Flags affected: ZF, SF; CF, OF when result overflowed.
+idiv    rr/rm/ri/mr/mi
+        Signed divide with remainder in r15.
+        Flags affected: ZF, SF; CF, OF when remainder is not 0.
+neg     r/m
+        Two's complement.
+        Flags affected: ZF, SF
+lea     rm
+        Load effective address by using indirect addressing without dereferencing. Result is always 64 bit.
+        No flags affected.
+
+> Logical instructions
+shl     rr/rm/ri/mr/mi
+        Logical shift left. Shift count is byte-sized.
+shr     rr/rm/ri/mr/mi
+        Logical shift right. Shift count is byte-sized.
+sar     rr/rm/ri/mr/mi
+        Arithmetic shift right. Shift count is byte-sized.
+rol     rr/rm/ri/mr/mi
+        Rotate bits leftwards. Shift count is byte-sized.
+ror     rr/rm/ri/mr/mi
+        Rotate bits rightwards. Shift count is byte-sized.
+and     rr/rm/ri/mr/mi
+        Bitwise AND.
+or      rr/rm/ri/mr/mi
+        Bitwise OR.
+xor     rr/rm/ri/mr/mi
+        Bitwise XOR.
+not     r/m
+        Bitwise NOT / One's complement.
+set     r/m (byte)
+        Set byte to 1.
+
+> Control flow instructions
+nop     ()
+        No operation.
+cmp     rr/rm/ri/mr/mi
+        Compare operands.
+        Flags affected: ZF, SF, CF, OF
+jmp     r/m/i
+        Jump to address. Address needs to be 64 bit.
+mov     rr/rm/ri/mr/mi
+        Move source operand to destination operand. Destination must be at least as wide as source.
+movsx   rr/rm/ri/mr/mi
+        Move source operand to destination operand with sign-extension. Destination must be at least as wide as source.
+movzx   rr/rm/ri/mr/mi
+        Move source operand to destination operand with zero-extension. Destination must be at least as wide as source.
+push    r/m/i
+        Push on stack.
+pop     r/m
+        Pop from stack.
+call    r/m/i
+        Call a function.
+ret     ()
+        Return to address saved on stack.
+hlt     ()
+        Halt the processor.
+in      rr/rm/ri
+        Read from stream specified by second operand into destination register specified by first operand.
+out     rr/rm/ri
+        Write to stream specified by second operand from source register specified by first operand.
+
+
+Instruction predicates
+----------------------
+> Description
+Instruction predicates are used to conditionally execute any instruction. They are passed to the instruction as an
+additional argument. They are always the last argument to an instruction.
+
+> Prefix
++   if condition is satisfied
+-   if condition is not satisfied
+
+> Predicates
+z   zero
+e   equal (same as zero)
+g   greater
+l   less
+ge  greater-equal
+le  less-equal
+a   above
+b   below
+ae  above-equal
+be  below-equal
+s   sign
+o   overflow
+c   carry
+
+
+Immediate value format
+----------------------
+> Description
+Immediate values may begin with one minus character '-' or one plus character '+'. Beware of the size class suffix for
+bytes when using hexadecimal numbers. Ending a hexadecimal number with a 'b' will make it an immediate value of byte
+size. To disambiguate, use an uppercase 'B'.
+
+> Base prefix
+none    decimal
+0b      binary
+0x      hexadecimal (lower- or uppercase)
+
+> Size class suffix
+none    inferred / 64 bit if not inferrable
+s       32 bit
+q       16 bit
+b       8 bit
+
+
+Indirect addressing
+-------------------
+> Format
+Size[Base + Index * Scale + Offset]
+
+> Description
+- Size is a size class. It's usually omitted because it can be inferred. Omitting the size in a context where it
+  cannot be inferred will default the size to 64 bit.
+- Base and Index are registers of same size.
+- Scale is 1, 2, 4 or 8.
+- Offset is some immediate value zero-extended to the size of Base / Index.
+  Offset is casted down to the size of Base and Index.
+  Offset may be comprised of several additions.
+- Any but not all parameters may be omitted.
+- Parameters may be reordered.
+
+
+Labels
+------
+> Description
+Any memory address may be labelled. Labels are comprised of alphanumeric and underscore characters, but do not begin
+with a digit. Labels may not contain any whitespace. Label declarations end with a colon character ':'.
+
+Multiple labels following immediately, one after the other, even with empty lines in-between, refer to the same address.
+
+Labels may begin with a dot character '.', which makes the affected label a sub-label of the nearest previous
+top-level-label(s). Dot characters after the beginning of a label carry no extra meaning.
+
+Labels count as immediate values in calculations.
+
+
+Static data blocks
+-----------
+> Declaration
+data size {x1, x2, ..., xn}
+data size zero 42
+data "string notation"
+
+> Description
+Static data blocks contain data that is baked into the program and resides at some fixed memory address.
+
+- 'data' is the keyword to create static data.
+- 'size' determines the size of each element and is either omitted (64 bit) or 'section', 'quarter' or 'byte'.
+- Data elements are surrounded by one pair of curly braces '{' '}' and are separated by commas.
+- Data elements are zero-extended to the size specified by 'size' or sign-extended with a preceding '+' or '-'.
+- Data elements that do not fit the specified 'size' have their excess higher bits discarded.
+- Another notation for data blocks is string notation. Characters of byte size are written between a pair of quotation
+  marks. The usual escape sequences apply. Data blocks declared using string notation always have size class 'byte'.
+- Yet another notation for data blocks is zero notation. Zero notation is a shorthand for creating an array of all
+  zeros.
+
+
+Example assembly source code
+----------------------------
+sample_array:
+        data section {0,0,0}
+
+map:
+        ; r2 function, r3 array, r4 length (unsigned)
+        cmp     r4, 0           ; length > 0
+        ret     +z
+        push    r10             ; save registers
+        push    r11
+        push    r12
+        mov     r10, r2
+        mov     r11, r3
+        mov     r12, r4
+        xor     r13, r13        ; i = 0
+.L0:
+        mov     r2, [r11+r13*8]         ; x = array[i]
+        call    r10                     ; f(x)
+        mov     [r11+r13*8], r0         ; array[i] = f(x)
+        add     r13, 1                  ; ++i
+        cmp     r13, r12                ; i < length
+        jmp     .L0, +b
+        pop     r12                     ; restore registers
+        pop     r11
+        pop     r10
+        ret
+
+S0:
+        data "hello world!"
+
+S0_:
+        lea     r0, [S0_-S0]
+        ret
+
+main:
+        call    S0_
+        xor     r1, r1
+.L0:
+        cmp     r1, r0
+        jmp     .L1, +ge
+        mov     b2, [S0+r1]
+        out     b2, 0
+        add     r1, 1
+        jmp     .L0
+.L1:
+        xor     r0, r0
+        ret
+
+
+
+
+
+
+
+
